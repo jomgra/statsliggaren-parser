@@ -1,16 +1,14 @@
 #!/usr/bin/python3
 
-import datetime
 from bs4 import BeautifulSoup
 import requests as req
 import sqlite3
 import os
 
-f = 'esv.db'
+f = 'esv.db' # Databasens namn
 
 
 def create_connection(db_file):
-	
 	conn = None
 	try:
 		conn = sqlite3.connect(db_file)
@@ -33,6 +31,7 @@ def create_table():
 	cursor.execute(sql)
 	conn.close()
 
+
 # Skapa databas om den inte finns
 if not os.path.isfile(f):
 	create_table()
@@ -46,16 +45,13 @@ soup = BeautifulSoup(r.text, "html.parser")
 nav = soup.find("nav", {"aria-label": "period"})
 years = nav.find_all("a")
 
-# Gå igenom år för år
+# Gå igenom varje år
 for y in years:
 	year = str(y.text).strip()
+	
 	# Ladda in statsmiggseren för resp år
 	r = req.get(url + "/statsliggaren/?PeriodId=" + year)
 	soup = BeautifulSoup(r.text, "html.parser")
-	
-	# Hitta förtecknkngen över myndigheter
-	nav = soup.find("nav", {"id": "Myndigheter"})
-	myndigheter = nav.find_all("a")
 
 	try:  # Lägg till kolumn för året
 		conn = create_connection(f)
@@ -66,10 +62,14 @@ for y in years:
 		conn.close()
 	except:
 		pass
-	
+
 	print(f"\n{year}")
-	
-	# Gå igenom alla myndighet
+
+	# Hitta förtecknkngen över myndigheter
+	nav = soup.find("nav", {"id": "Myndigheter"})
+	myndigheter = nav.find_all("a")
+
+	# Gå igenom alla myndigheter
 	for m in myndigheter:
 		mdata = []
 		start = m["href"].find("myndighetId=") + 12
@@ -90,23 +90,24 @@ for y in years:
 		except:
 			print("  Finns redan i databasen")
 		
-		# Läs in regleringsbrevet
+		# Ladda in regleringsbrevet
 		r = req.get(url + m["href"])
 		soup = BeautifulSoup(r.text, "html.parser")
 		# Leta upp uppdragsasvnittet
 		u = soup.find("h2", string="Uppdrag")
 		
 		if u is None:
+			# Det verkar inte finnas några uppdrag i regleringsbrevet
 			print("  Inga uppdrag")
 			num = 0
 			
 		else:
 			# Här räknas antalet underrubriker till uppdrags-rubriken.
-			# Problemet är att inte alla uppdrag prenteras i underrubrik.
-			# Det går säkert att fixa med en närmare granskning av regleringsbrev.
-			up = u.parent.parent.parent.parent.parent
-			num = len(up.find_all("h3"))
+			# Problemet är att inte alla uppdrag prenteras i en underrubrik (h3).
+			# Det går säkert att fixa med en närmare granskning av regleringsbreven.
 			
+			up = u.parent.parent.parent.parent.parent
+			num = len(up.find_all("h3"))			
 			print(" ", num, "uppdrag")
 			
 		try:  # Lägg till antal uppdrag
