@@ -49,7 +49,7 @@ years = nav.find_all("a")
 for y in years:
 	year = str(y.text).strip()
 	
-	# Ladda in statsmiggseren för resp år
+	# Ladda in statsliggseren för resp år
 	r = req.get(url + "/statsliggaren/?PeriodId=" + year)
 	soup = BeautifulSoup(r.text, "html.parser")
 
@@ -110,7 +110,7 @@ for y in years:
 			num = len(up.find_all("h3"))			
 			print(" ", num, "uppdrag")
 			
-		try:  # Lägg till antal uppdrag
+		try:  # Lägg till antal uppdrag (eller något annat)
 			conn = create_connection(f)
 			cursor = conn.cursor()
 			sql = f"UPDATE esv SET '{year}'={num} WHERE myndighetsid={mdata[0]}"
