@@ -5,8 +5,10 @@ import requests as req
 import sqlite3
 import os
 
-f = 'esv.db' # Databasens namn
+
+f = 'esv.db'  # Databasens namn
 url = "https://www.esv.se/statsliggaren/"
+
 
 def create_connection(db_file):
 	conn = None
@@ -47,7 +49,7 @@ def writetodb(sql):
 	
 	
 def getYears():
-	r =[]
+	r = []
 	t = req.get(url)
 	soup = BeautifulSoup(t.text, "html.parser")
 	nav = soup.find("nav", {"aria-label": "period"})
@@ -57,7 +59,8 @@ def getYears():
 		
 	return r
 
-def getAuthorities(year): 
+
+def getAuthorities(year):
 
 	r = []
 	t = req.get(url + "?PeriodId=" + year)
@@ -74,6 +77,7 @@ def getAuthorities(year):
 	
 	return r
 
+
 def getRBnode(authId, year):
 	
 	u = f"{url}SenasteRegleringsbrev/?myndighetId={authId}&periodId={year}"
@@ -87,12 +91,12 @@ def getRBnode(authId, year):
 if not os.path.isfile(f):  # Skapa databas
 	create_table()
 
-years = getYears() # Hämta tillgängliga åt
+years = getYears()  # Hämta tillgängliga åt
 
 for year in years:
 
 	sql = f"ALTER TABLE esv ADD '{year}' INTEGER"
-	writetodb(sql) # Skapa kolumn för året
+	writetodb(sql)  # Skapa kolumn för året
 
 	print(f"\n{year}")
 	
@@ -118,6 +122,6 @@ for year in years:
 		print(" ", num, "ord")
 		
 		sql = f"UPDATE esv SET '{year}'={num} WHERE myndighetsid={a['id']}"
-		
+
 		writetodb(sql)  # Lägg till antal ord (eller något annat)
 			
