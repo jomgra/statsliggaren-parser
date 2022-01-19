@@ -6,7 +6,7 @@ import sqlite3
 import os
 
 f = 'esv.db' # Databasens namn
-
+url = "https://www.esv.se/statsliggaren/"
 
 def create_connection(db_file):
 	conn = None
@@ -31,79 +31,93 @@ def create_table():
 	cursor.execute(sql)
 	conn.close()
 
-
-# Skapa databas om den inte finns
-if not os.path.isfile(f):
-	create_table()
-
-# Läs in statsliggaren
-url = "https://www.esv.se"
-r = req.get(url + "/statsliggaren/")
-soup = BeautifulSoup(r.text, "html.parser")
-
-# Hitta företeckningen över årtal
-nav = soup.find("nav", {"aria-label": "period"})
-years = nav.find_all("a")
-
-# Gå igenom varje år
-for y in years:
-	year = str(y.text).strip()
 	
-	# Ladda in statsliggseren för resp år
-	r = req.get(url + "/statsliggaren/?PeriodId=" + year)
-	soup = BeautifulSoup(r.text, "html.parser")
-
-	try:  # Lägg till kolumn för året
+def writetodb(sql):
+	try:
 		conn = create_connection(f)
 		cursor = conn.cursor()
-		sql = f"ALTER TABLE esv ADD '{year}' INTEGER"
 		cursor.execute(sql)
 		conn.commit()
 		conn.close()
+		r = True
 	except:
-		pass
+		r = False
+		
+	return r
+	
+	
+def getYears():
+	r =[]
+	t = req.get(url)
+	soup = BeautifulSoup(t.text, "html.parser")
+	nav = soup.find("nav", {"aria-label": "period"})
+	y_link = nav.find_all("a")
+	for y in y_link:
+		r.append(str(y.text).strip())
+		
+	return r
+
+def getAuthorities(year): 
+
+	r = []
+	t = req.get(url + "?PeriodId=" + year)
+	soup = BeautifulSoup(t.text, "html.parser")
+	nav = soup.find("nav", {"id": "Myndigheter"})
+	auth = nav.find_all("a")
+	
+	for a in auth:
+		md = {}
+		md["href"] = a["href"]
+		md["id"] = int(a["href"][a["href"].find("myndighetId=") + 12: a["href"].find("&")])
+		md["name"] = str(a.text).strip()
+		r.append(md)
+	
+	return r
+
+def getRBnode(authId, year):
+	
+	u = f"{url}SenasteRegleringsbrev/?myndighetId={authId}&periodId={year}"
+	t = req.get(u)
+	soup = BeautifulSoup(t.text, "html.parser")
+	r = soup.find("section", {"id": "letter"})
+	
+	return r
+
+
+if not os.path.isfile(f):  # Skapa databas
+	create_table()
+
+years = getYears() # Hämta tillgängliga åt
+
+for year in years:
+
+	sql = f"ALTER TABLE esv ADD '{year}' INTEGER"
+	writetodb(sql) # Skapa kolumn för året
 
 	print(f"\n{year}")
+	
+	auth = getAuthorities(year)  # Hämta myndigheter
 
-	# Hitta förtecknkngen över myndigheter
-	nav = soup.find("nav", {"id": "Myndigheter"})
-	myndigheter = nav.find_all("a")
-
-	# Gå igenom alla myndigheter
-	for m in myndigheter:
-		mdata = []
-		mdata.append(int(m["href"][m["href"].find("myndighetId=") + 12: m["href"].find("&")]))  # MyndighetsID
-		mdata.append(str(m.text).strip())  # Myndighetsnamn
+	for a in auth:
 		
-		print("\n" + "-"*30 + "\n\n" + mdata[1])
+		print("\n" + "-"*30 + "\n\n" + a["name"])
 		
-		try:  # Lägg till myndigheten
-			conn = create_connection(f)
-			cursor = conn.cursor()
-			sql = "INSERT INTO esv (myndighetsid, myndighetsnamn) VALUES (?,?)"
-			cursor.execute(sql, mdata)
-			conn.commit()
-			conn.close()
+		sql = f"INSERT INTO esv (myndighetsid, myndighetsnamn) VALUES ({a['id']},{a['name']})"
+		
+		if writetodb(sql):
 			print("  Tillagd till databasen")
-		except:
+			
+		else:
 			print("  Finns redan i databasen")
 		
-		# Ladda in regleringsbrevet
-		r = req.get(url + m["href"])
-		soup = BeautifulSoup(r.text, "html.parser")
-		rb = soup.find("section", {"id": "letter"})
+		rb = getRBnode(a["id"], year)  # Hämta regleringsbrev
 		
 		# Räkna orden i regleringsbrevet
 		rbWords = rb.get_text(separator=" ")
 		num = len(rbWords.split())
 		print(" ", num, "ord")
+		
+		sql = f"UPDATE esv SET '{year}'={num} WHERE myndighetsid={a['id']}"
+		
+		writetodb(sql)  # Lägg till antal ord (eller något annat)
 			
-		try:  # Lägg till antal ord (eller något annat)
-			conn = create_connection(f)
-			cursor = conn.cursor()
-			sql = f"UPDATE esv SET '{year}'={num} WHERE myndighetsid={mdata[0]}"
-			cursor.execute(sql)
-			conn.commit()
-			conn.close()
-		except:
-			pass
