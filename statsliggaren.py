@@ -117,8 +117,12 @@ for year in years:
 		rb = getRBnode(a["id"], year)  # Hämta regleringsbrev
 		
 		# Räkna orden i regleringsbrevet
-		rbWords = rb.get_text(separator=" ")
-		num = len(rbWords.split())
+		if rb is not None:
+			rbWords = rb.get_text(separator=" ")
+			num = len(rbWords.split())
+		else:
+			num = 0
+
 		print(" ", num, "ord")
 		
 		sql = f"UPDATE esv SET '{year}'={num} WHERE myndighetsid={a['id']}"
