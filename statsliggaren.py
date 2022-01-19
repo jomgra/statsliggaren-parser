@@ -72,10 +72,8 @@ for y in years:
 	# Gå igenom alla myndigheter
 	for m in myndigheter:
 		mdata = []
-		start = m["href"].find("myndighetId=") + 12
-		end = m["href"].find("&")
-		mdata.append(int(m["href"][start: end]))
-		mdata.append(str(m.text).strip())
+		mdata.append(int(m["href"][m["href"].find("myndighetId=") + 12: m["href"].find("&")]))  # MyndighetsID
+		mdata.append(str(m.text).strip())  # Myndighetsnamn
 		
 		print("\n" + "-"*30 + "\n\n" + mdata[1])
 		
@@ -93,7 +91,8 @@ for y in years:
 		# Ladda in regleringsbrevet
 		r = req.get(url + m["href"])
 		soup = BeautifulSoup(r.text, "html.parser")
-		# Leta upp uppdragsasvnittet
+		
+		# Leta upp uppdragsasvnittet (eller något annat)
 		u = soup.find("h2", string="Uppdrag")
 		
 		if u is None:
