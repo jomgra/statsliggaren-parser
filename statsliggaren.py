@@ -91,25 +91,14 @@ for y in years:
 		# Ladda in regleringsbrevet
 		r = req.get(url + m["href"])
 		soup = BeautifulSoup(r.text, "html.parser")
+		rb = soup.find("section", {"id": "letter"})
 		
-		# Leta upp uppdragsasvnittet (eller något annat)
-		u = soup.find("h2", string="Uppdrag")
-		
-		if u is None:
-			# Det verkar inte finnas några uppdrag i regleringsbrevet
-			print("  Inga uppdrag")
-			num = 0
+		# Räkna orden i regleringsbrevet
+		rbWords = rb.get_text(separator=" ")
+		num = len(rbWords.split())
+		print(" ", num, "ord")
 			
-		else:
-			# Här räknas antalet underrubriker till uppdrags-rubriken.
-			# Problemet är att inte alla uppdrag prenteras i en underrubrik (h3).
-			# Det går säkert att fixa med en närmare granskning av regleringsbreven.
-			
-			up = u.parent.parent.parent.parent.parent
-			num = len(up.find_all("h3"))			
-			print(" ", num, "uppdrag")
-			
-		try:  # Lägg till antal uppdrag (eller något annat)
+		try:  # Lägg till antal ord (eller något annat)
 			conn = create_connection(f)
 			cursor = conn.cursor()
 			sql = f"UPDATE esv SET '{year}'={num} WHERE myndighetsid={mdata[0]}"
