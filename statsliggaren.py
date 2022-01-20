@@ -60,7 +60,7 @@ def getYears():
 	return r
 
 
-def getAuthorities(year):
+def getAgencies(year):
 
 	r = []
 	t = req.get(url + "?PeriodId=" + year)
@@ -100,7 +100,7 @@ for year in years:
 
 	print(f"\n{year}")
 	
-	auth = getAuthorities(year)  # Hämta myndigheter
+	auth = getAgencies(year)  # Hämta myndigheter
 
 	for a in auth:
 		
