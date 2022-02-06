@@ -106,7 +106,7 @@ for year in years:
 		
 		print("\n" + "-"*30 + "\n\n" + a["name"])
 		
-		sql = f"INSERT INTO esv (myndighetsid, myndighetsnamn) VALUES ({a['id']},{a['name']})"
+		sql = f"INSERT INTO esv (myndighetsid, myndighetsnamn) VALUES ({a['id']},'{a['name']}')"
 		
 		if writetodb(sql):
 			print("  Tillagd till databasen")
